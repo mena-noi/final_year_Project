@@ -1,0 +1,488 @@
+/* Register.css - Split Layout */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.register-split {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+  padding: 24px;
+}
+
+/* Voice Toggle */
+.voice-toggle-split {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid #FFD700;
+  color: #0B2A5B;
+  padding: 8px 20px;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  z-index: 100;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.voice-toggle-split:hover {
+  background: #FFD700;
+  transform: translateY(-2px);
+}
+
+.voice-toggle-split .active {
+  animation: pulse 1.5s infinite;
+  color: #FFD700;
+}
+
+/* Back Button */
+.back-split {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+}
+
+.back-split:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Main Container */
+.register-split-container {
+  display: flex;
+  max-width: 1200px;
+  margin: 100px auto 40px;
+  background: white;
+  border-radius: 40px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Left Side - Form */
+.register-split-left {
+  flex: 1;
+  padding: 48px;
+  background: white;
+}
+
+.register-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.register-header {
+  margin-bottom: 32px;
+}
+
+.register-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.register-header p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Form Rows */
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  font-size: 15px;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Next Button */
+.next-btn-split {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 16px;
+}
+
+.next-btn-split:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+}
+
+/* Login Link */
+.login-link-split {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.login-link-split a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Right Side - Info */
+.register-split-right {
+  width: 380px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.info-content {
+  text-align: center;
+}
+
+.info-icon-large {
+  font-size: 80px;
+  margin-bottom: 24px;
+  opacity: 0.9;
+}
+
+.info-content h2 {
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.info-content p {
+  font-size: 15px;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin-bottom: 32px;
+}
+
+.info-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.info-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 60px;
+  font-size: 14px;
+}
+
+.info-feature svg {
+  font-size: 18px;
+}
+
+/* Step Indicator */
+.info-steps {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.step-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.step-dot.active {
+  background: #FFD700;
+  color: #0B2A5B;
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.step-line.active {
+  background: #FFD700;
+}
+
+.info-steps p {
+  font-size: 13px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Face Capture Section */
+.face-section {
+  text-align: center;
+}
+
+.camera-box {
+  background: #1e293b;
+  border-radius: 24px;
+  overflow: hidden;
+  margin: 24px 0;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.camera-feed-split {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.camera-placeholder-split {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #1e293b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+}
+
+.camera-placeholder-split svg {
+  font-size: 48px;
+  color: #94a3b8;
+}
+
+.capture-success-split {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(16, 185, 129, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+}
+
+.camera-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.capture-split, .retake-split, .skip-split {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.capture-split {
+  background: #10b981;
+  color: white;
+}
+
+.capture-split:hover:not(:disabled) {
+  background: #059669;
+}
+
+.capture-split:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.retake-split {
+  background: #f59e0b;
+  color: white;
+}
+
+.skip-split {
+  background: #94a3b8;
+  color: white;
+}
+
+.listening-split {
+  margin-top: 16px;
+  padding: 10px;
+  background: #FFD700;
+  border-radius: 40px;
+  color: #0B2A5B;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Messages */
+.error-message, .success-message {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-message {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.success-message {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .register-split-container {
+    flex-direction: column;
+    margin: 100px 20px 40px;
+  }
+
+  .register-split-right {
+    width: 100%;
+    padding: 40px;
+  }
+
+  .register-split-left {
+    padding: 32px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-split-left {
+    padding: 24px;
+  }
+
+  .register-header h1 {
+    font-size: 28px;
+  }
+
+  .camera-buttons {
+    flex-direction: column;
+  }
+
+  .capture-split, .retake-split, .skip-split {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .voice-toggle-split, .back-split {
+    top: 16px;
+    padding: 6px 16px;
+    font-size: 12px;
+  }
+
+  .back-split {
+    left: 16px;
+  }
+}
