@@ -10,10 +10,13 @@ import {
   FaSpinner
 } from "react-icons/fa";
 import "./Login.css";
+import { useTextToSpeech } from "../hooks/useTextToSpeech";
+import i18n from "../i18n";
 
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { speak: speakTts, stop: stopTts } = useTextToSpeech();
   const [voiceGuide, setVoiceGuide] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,10 +33,7 @@ function Login() {
 
   const speak = (text: string) => {
     if (!voiceGuide) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.85;
-    window.speechSynthesis.speak(utterance);
+    speakTts(text, { rate: 0.85, lang: i18n.language as any });
   };
 
 
@@ -72,7 +72,7 @@ function Login() {
   const toggleVoiceGuide = () => {
     setVoiceGuide(!voiceGuide);
     if (!voiceGuide) speak("Voice guidance enabled");
-    else window.speechSynthesis.cancel();
+    else stopTts();
   };
 
   return (

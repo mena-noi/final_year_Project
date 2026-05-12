@@ -49,7 +49,7 @@ i18n
           rename: "Rename",
           delete: "Delete",
           save: "Save",
-          messagePlaceholder: "Message DeepSeek",
+          messagePlaceholder: "ask me",
           deepThink: "DeepThink",
           search: "Search",
           listeningNow: "Listening... speak now.",

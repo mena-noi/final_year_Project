@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 
+const Schedule = require('../models/schedule');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
 
 // Ensure uploads directory exists
@@ -39,10 +40,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-// In-memory storage for schedule metadata (in production, use database)
-let schedules = [];
-let nextId = 1;
-
 // ============ UPLOAD SCHEDULE (FILE UPLOAD) ============
 router.post('/upload', authMiddleware, roleMiddleware(['department_head']), upload.single('file'), async (req, res) => {
   try {
@@ -53,20 +50,19 @@ router.post('/upload', authMiddleware, roleMiddleware(['department_head']), uplo
     const { title, type, academicYear, semester, department, description } = req.body;
 
     if (!title || !type || !academicYear || !department) {
-      return res.status(400).json({ 
-        error: 'Title, type, academic year, and department are required' 
+      return res.status(400).json({
+        error: 'Title, type, academic year, and department are required'
       });
     }
 
     const validTypes = ['yearly_calendar', 'semester_schedule', 'class_schedule', 'exam_schedule'];
     if (!validTypes.includes(type)) {
-      return res.status(400).json({ 
-        error: 'Invalid schedule type. Must be yearly_calendar, semester_schedule, class_schedule, or exam_schedule' 
+      return res.status(400).json({
+        error: 'Invalid schedule type. Must be yearly_calendar, semester_schedule, class_schedule, or exam_schedule'
       });
     }
 
-    const schedule = {
-      id: nextId++,
+    const schedule = new Schedule({
       title,
       type,
       academicYear,
@@ -77,13 +73,11 @@ router.post('/upload', authMiddleware, roleMiddleware(['department_head']), uplo
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
       department,
-      uploadedBy: req.user.email,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      uploadedBy: req.user.id,
+      isActive: true
+    });
 
-    schedules.push(schedule);
+    await schedule.save();
 
     res.status(201).json({
       message: `${type} uploaded successfully`,
@@ -99,14 +93,16 @@ router.post('/upload', authMiddleware, roleMiddleware(['department_head']), uplo
 router.get('/', async (req, res) => {
   try {
     const { type, academicYear, semester, department } = req.query;
-    let filteredSchedules = [...schedules];
+    const query = {};
 
-    if (type) filteredSchedules = filteredSchedules.filter(s => s.type === type);
-    if (academicYear) filteredSchedules = filteredSchedules.filter(s => s.academicYear === academicYear);
-    if (semester) filteredSchedules = filteredSchedules.filter(s => s.semester === semester);
-    if (department) filteredSchedules = filteredSchedules.filter(s => s.department === department);
+    if (type) query.type = type;
+    if (academicYear) query.academicYear = academicYear;
+    if (semester) query.semester = semester;
+    if (department) query.department = department;
 
-    res.json({ schedules: filteredSchedules, total: filteredSchedules.length });
+    const schedules = await Schedule.find(query).sort({ createdAt: -1 });
+
+    res.json({ schedules, total: schedules.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -116,8 +112,8 @@ router.get('/', async (req, res) => {
 router.get('/type/:type', async (req, res) => {
   try {
     const { type } = req.params;
-    const filteredSchedules = schedules.filter(s => s.type === type && s.isActive === true);
-    res.json({ schedules: filteredSchedules, total: filteredSchedules.length });
+    const schedules = await Schedule.find({ type, isActive: true }).sort({ createdAt: -1 });
+    res.json({ schedules, total: schedules.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -126,7 +122,7 @@ router.get('/type/:type', async (req, res) => {
 // ============ GET SINGLE SCHEDULE ============
 router.get('/:id', async (req, res) => {
   try {
-    const schedule = schedules.find(s => s.id === parseInt(req.params.id));
+    const schedule = await Schedule.findById(req.params.id);
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
@@ -139,18 +135,17 @@ router.get('/:id', async (req, res) => {
 // ============ DELETE SCHEDULE ============
 router.delete('/:id', authMiddleware, roleMiddleware(['department_head']), async (req, res) => {
   try {
-    const scheduleIndex = schedules.findIndex(s => s.id === parseInt(req.params.id));
-    if (scheduleIndex === -1) {
+    const schedule = await Schedule.findById(req.params.id);
+    if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
     }
 
-    const schedule = schedules[scheduleIndex];
     const filePath = path.join(__dirname, '..', schedule.fileUrl);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
-    schedules.splice(scheduleIndex, 1);
+    await Schedule.deleteOne({ _id: req.params.id });
     res.json({ message: 'Schedule deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

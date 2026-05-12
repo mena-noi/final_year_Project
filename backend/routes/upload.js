@@ -70,14 +70,14 @@ const parseBatchYear = (value) => {
 
   if (Array.isArray(parsed)) {
     if (parsed.length !== 1) {
-      throw new Error('targetBatchYears must be a single integer from 1 to 4');
+      throw new Error('targetBatchYears must be a single integer from 1 to 5');
     }
     parsed = parsed[0];
   }
 
   const year = Number(parsed);
-  if (!Number.isInteger(year) || year < 1 || year > 4) {
-    throw new Error('targetBatchYears must be an integer from 1 to 4');
+  if (!Number.isInteger(year) || year < 1 || year > 5) {
+    throw new Error('targetBatchYears must be an integer from 1 to 5');
   }
 
   return year;
@@ -137,25 +137,65 @@ router.post('/material', authMiddleware, roleMiddleware(['lecturer', 'department
 // ============ GET AVAILABLE COURSE MATERIALS FOR STUDENTS ============
 router.get('/material', authMiddleware, roleMiddleware(['student']), async (req, res) => {
   try {
+    console.log('Student materials fetch - user:', req.user);
     const student = await Student.findById(req.user?.id);
     if (!student) {
+      console.log('Student not found for id:', req.user?.id);
       return res.status(404).json({ error: 'Student not found' });
     }
 
+    console.log('Student batchYear:', student.batchYear, 'department:', student.department);
+
+    // Build query: active materials that match student's batch year and department
     const query = {
-      isActive: true,
-      $or: [
-        { targetBatchYears: student.batchYear },
-        { targetBatchYears: { $exists: false } },
-        { targetBatchYears: null }
+      $and: [
+        {
+          $or: [
+            { isActive: true },
+            { isActive: { $exists: false } }
+          ]
+        },
+        {
+          $or: [
+            { targetBatchYears: student.batchYear },
+            { targetBatchYears: { $exists: false } },
+            { targetBatchYears: null }
+          ]
+        },
+        {
+          $or: [
+            { department: student.department },
+            { department: { $exists: false } },
+            { department: null },
+            { department: '' }
+          ]
+        }
       ]
     };
 
-    if (student.department) {
-      query.department = student.department;
+    console.log('Query:', JSON.stringify(query));
+
+    const allMaterials = await CourseMaterial.find({}).sort({ createdAt: -1 }).lean();
+    console.log('ALL materials in database:', allMaterials.length);
+    
+    if (allMaterials.length === 0) {
+      console.log('NO MATERIALS FOUND IN DATABASE - Need to upload materials first!');
+    } else {
+      allMaterials.forEach((mat, i) => {
+        console.log(`Material ${i+1}:`, {
+          title: mat.title,
+          isActive: mat.isActive,
+          department: mat.department,
+          targetBatchYears: mat.targetBatchYears,
+          courseCode: mat.courseCode
+        });
+      });
     }
 
+    console.log('Query:', JSON.stringify(query));
+
     const materials = await CourseMaterial.find(query).sort({ createdAt: -1 }).lean();
+    console.log('Found materials:', materials.length);
 
     res.json({ materials });
   } catch (error) {

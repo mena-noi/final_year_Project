@@ -13,10 +13,13 @@ import {
   FaArrowUp,
   FaMoon,
   FaSun,
-  FaSpinner
+  FaSpinner,
+  FaCompass
 } from "react-icons/fa";
 import { apiClient } from "../api/client";
 import "./AIChat.css";
+import { useTextToSpeech } from "../hooks/useTextToSpeech";
+import { useVoiceInteraction } from "../contexts/VoiceInteractionContext";
 
 interface Message {
   id: string;
@@ -62,12 +65,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isLightMode, setIsLightMode] = useState(true);
+  const [isRagLoading, setIsRagLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const { speak: speakTts } = useTextToSpeech();
+  const { enabled: voiceEnabled } = useVoiceInteraction();
 
   // Cleanup MediaRecorder on unmount
   useEffect(() => {
@@ -85,10 +91,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // 🔊 Text-to-Speech
   const speak = (text: string) => {
-    window.speechSynthesis.cancel();
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.rate = 0.9;
-    window.speechSynthesis.speak(speech);
+    speakTts(text, { rate: 0.9, lang: (i18n.resolvedLanguage || "en") as any });
   };
 
   const handleSendMessage = (text: string = inputText) => {
@@ -97,6 +100,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setInputText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
+    }
+  };
+
+  const handleRagExplore = async () => {
+    if (isRagLoading) return;
+    
+    setIsRagLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/rag/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          question: "Tell me about the available course materials and modules"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Send the RAG response as a message
+        onSendMessage(data.answer || "Here's information about your course materials:");
+      } else {
+        console.error('RAG request failed');
+        onSendMessage("Sorry, I couldn't fetch information about your modules right now.");
+      }
+    } catch (error) {
+      console.error('Error fetching RAG information:', error);
+      onSendMessage("Sorry, there was an error connecting to the module database.");
+    } finally {
+      setIsRagLoading(false);
     }
   };
 
@@ -116,6 +152,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const startListening = async () => {
+    if (!voiceEnabled) return;
     if (isListening) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.stop();
@@ -343,9 +380,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 className={`ds-voice-btn ${isListening ? "listening" : ""}`}
                 onClick={startListening}
                 title={isListening ? "Listening..." : "Voice input"}
-                disabled={isTranscribing}
+                disabled={isTranscribing || !voiceEnabled}
               >
                 {isTranscribing ? <FaSpinner className="fa-spin" /> : <FaMicrophone />}
+              </button>
+              <button
+                className={`ds-rag-btn ${isRagLoading ? "loading" : ""}`}
+                onClick={handleRagExplore}
+                title="Explore modules with RAG"
+                disabled={isRagLoading}
+              >
+                {isRagLoading ? <FaSpinner className="fa-spin" /> : <FaCompass />}
               </button>
               <button
                 className="ds-send-btn"

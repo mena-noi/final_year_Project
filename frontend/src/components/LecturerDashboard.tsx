@@ -93,8 +93,8 @@ const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ onLogout }) => {
 
   const handleAddModule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!moduleForm.title || !moduleForm.description || !moduleForm.courseCode) {
-      setModuleError('Please fill all module fields.');
+    if (!moduleForm.title || !moduleForm.description || !moduleForm.courseCode || !moduleForm.batchYear) {
+      setModuleError('Please fill all module fields including batch year.');
       return;
     }
 
@@ -507,6 +507,18 @@ const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ onLogout }) => {
           <option value="assignment">Assignment</option>
           <option value="reference">Reference</option>
           <option value="other">Other</option>
+        </select>
+        <select
+          value={moduleForm.batchYear}
+          onChange={(e) => setModuleForm((prev) => ({ ...prev, batchYear: e.target.value }))}
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+        >
+          <option value="">Select Batch Year</option>
+          <option value="1">Year 1</option>
+          <option value="2">Year 2</option>
+          <option value="3">Year 3</option>
+          <option value="4">Year 4</option>
+          <option value="5">Year 5</option>
         </select>
         <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
           Add Module

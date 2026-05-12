@@ -179,6 +179,34 @@ export const fetchSchedules = async (query: Record<string, string | number | und
   }>(`/api/schedules${queryString ? `?${queryString}` : ''}`);
 };
 
+export const uploadSchedule = async (formData: FormData) => {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/schedules/upload`, {
+    method: 'POST',
+    headers,
+    body: formData
+  });
+
+  const data = await getJson(response);
+  if (!response.ok) {
+    const message = data?.error || response.statusText || 'Upload failed';
+    throw new ApiError(message, response.status, data);
+  }
+
+  return data;
+};
+
+export const fetchStudentMaterials = async () => {
+  return apiRequest<{
+    materials: Array<any>;
+  }>('/api/upload/material');
+};
+
 export const sendChatMessage = async (payload: {
   message: string;
   language?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
+import {
   FaMicrophone,
   FaVolumeUp,
   FaRobot,
@@ -20,8 +20,12 @@ import {
   FaTasks,
   FaArrowRight,
   FaSpinner,
-  FaRegKeyboard
+  FaRegKeyboard,
+  FaClipboardList
 } from "react-icons/fa";
+import { fetchSchedules, fetchStudentMaterials } from "../api/api";
+import MaterialViewer from "./MaterialViewer";
+import HuggingFaceVoiceAssistant from "./HuggingFaceVoiceAssistant";
 import "./HomeDashboard.css";
 import type { LecturerExamBlockAnnouncement } from "../types";
 
@@ -48,6 +52,10 @@ const HomeDashboard: React.FC = () => {
   const [userName, setUserName] = useState<string>("Student");
   const [examNotices, setExamNotices] = useState<LecturerExamBlockAnnouncement[]>([]);
 
+  // Schedules data
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
+
   // Reminders data
   const [reminders, setReminders] = useState([
     { id: 1, text: "Math assignment due tomorrow", time: "9:00 AM", completed: false },
@@ -55,13 +63,12 @@ const HomeDashboard: React.FC = () => {
     { id: 3, text: "Physics quiz preparation", time: "5:00 PM", completed: false }
   ]);
 
-  // Modules data
-  const [modules] = useState([
-    { id: 1, name: "Mathematics 101", progress: 75, nextClass: "Today 10:30 AM", icon: "📐" },
-    { id: 2, name: "Physics Fundamentals", progress: 45, nextClass: "Today 2:00 PM", icon: "⚛️" },
-    { id: 3, name: "Computer Science", progress: 30, nextClass: "Tomorrow 9:00 AM", icon: "💻" },
-    { id: 4, name: "Literature", progress: 90, nextClass: "Tomorrow 11:00 AM", icon: "📖" }
-  ]);
+  // Modules data - fetched from backend
+  const [modules, setModules] = useState<any[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [modulesError, setModulesError] = useState('');
+  const [selectedMaterial, setSelectedMaterial] = useState<any | null>(null);
+  const [showMaterialViewer, setShowMaterialViewer] = useState(false);
 
   // Get user name from localStorage
   useEffect(() => {
@@ -72,6 +79,61 @@ const HomeDashboard: React.FC = () => {
         if (userData.name) setUserName(userData.name.split(' ')[0]);
       } catch (e) {}
     }
+  }, []);
+
+  // Fetch schedules from backend
+  useEffect(() => {
+    const loadSchedules = async () => {
+      setSchedulesLoading(true);
+      try {
+        const response = await fetchSchedules();
+        setSchedules(response.schedules || []);
+      } catch (error) {
+        console.error('Failed to fetch schedules:', error);
+      } finally {
+        setSchedulesLoading(false);
+      }
+    };
+    loadSchedules();
+  }, []);
+
+  // Fetch modules from backend
+  useEffect(() => {
+    const loadModules = async () => {
+      setModulesLoading(true);
+      setModulesError('');
+      try {
+        console.log('Fetching student materials...');
+        
+        // Direct API call for debugging
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/upload/material', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Direct API response:', data);
+        
+        const mats = data.materials || [];
+        console.log('Materials count:', mats.length);
+        console.log('Materials data:', mats);
+        
+        setModules(mats);
+      } catch (error: any) {
+        console.error('Failed to fetch modules:', error);
+        setModulesError(error?.message || 'Failed to load materials');
+      } finally {
+        setModulesLoading(false);
+      }
+    };
+    loadModules();
   }, []);
 
   useEffect(() => {
@@ -119,24 +181,52 @@ const HomeDashboard: React.FC = () => {
   }, [voiceGuide]);
 
   // Navigation functions - Go to Dashboard with hash
-  const navigateToChat = useCallback(() => {
-    speak("Opening AI Chat Assistant");
-    navigate("/dashboard#chat");
-  }, [navigate, speak]);
-
-  const navigateToModules = useCallback(() => {
-    speak("Opening Learning Modules");
-    navigate("/dashboard#modules");
-  }, [navigate, speak]);
-
-  const navigateToReminders = useCallback(() => {
-    speak("Opening Reminders");
-    navigate("/dashboard#reminders");
-  }, [navigate, speak]);
-
+  const navigateToChat = () => {
+    // Navigate to chat section with hash
+    window.location.href = 'http://localhost:5173/dashboard#chat';
+  };
+  const navigateToModules = () => {
+    // Navigate to modules section with hash
+    window.location.href = 'http://localhost:5173/dashboard#modules';
+  };
+  const navigateToReminders = () => {
+    // Navigate to reminders section with hash
+    window.location.href = 'http://localhost:5173/dashboard#reminders';
+  };
   const navigateToCommands = useCallback(() => {
     speak("Opening Voice Commands");
-    navigate("/dashboard#commands");
+    // Navigate to commands section with hash
+    window.location.href = 'http://localhost:5173/dashboard#commands';
+  }, [navigate, speak]);
+
+  const handleAskAI = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/rag/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          question: "Can you help me understand my course materials better?"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('RAG response:', data);
+        navigate('/chat');
+      } else {
+        console.error('RAG request failed');
+      }
+    } catch (error) {
+      console.error('Error asking AI:', error);
+    }
+  };
+
+  const handleOpenVoiceCommands = useCallback(() => {
+    speak("Opening Voice Commands");
+    navigateToChat();
   }, [navigate, speak]);
 
   const handleLogout = useCallback((): void => {
@@ -154,6 +244,18 @@ const HomeDashboard: React.FC = () => {
     speak(reminder?.completed ? "Reminder marked incomplete" : "Reminder completed! Good job!");
   }, [reminders, speak]);
 
+  const openMaterialViewer = useCallback((material: any) => {
+    console.log('Opening material:', material);
+    setSelectedMaterial(material);
+    setShowMaterialViewer(true);
+    speak(`Opening ${material.title}`);
+  }, [speak]);
+
+  const closeMaterialViewer = useCallback(() => {
+    setShowMaterialViewer(false);
+    setSelectedMaterial(null);
+  }, []);
+
   const formatTime = useCallback((date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, []);
@@ -162,8 +264,26 @@ const HomeDashboard: React.FC = () => {
     return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
   }, []);
 
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }, []);
+
+  const handleDownload = useCallback((material: any) => {
+    const link = document.createElement('a');
+    link.href = `http://localhost:3000${material.fileUrl}`;
+    link.download = material.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    speak(`Downloading ${material.title}`);
+  }, [speak]);
+
   const pendingRemindersCount = reminders.filter(r => !r.completed).length;
-  const totalProgress = Math.round(modules.reduce((acc, m) => acc + m.progress, 0) / modules.length);
+  const totalProgress = modules.length > 0 ? Math.round(100 / modules.length) : 0;
 
   return (
     <div className="dashboard-modern">
@@ -252,6 +372,39 @@ const HomeDashboard: React.FC = () => {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/* Schedules Section */}
+        {schedules.length > 0 && (
+          <section className="schedules-banner" aria-label="Department schedules">
+            <div className="exam-notices-header">
+              <FaClipboardList aria-hidden />
+              <h2>Schedules & Calendars</h2>
+            </div>
+            <div className="exam-notices-list">
+              {schedules.map((schedule: any) => (
+                <div key={schedule._id} className="exam-notice-item">
+                  <p className="exam-notice-title">{schedule.title}</p>
+                  <p className="exam-notice-dates">
+                    Type: {schedule.type?.replace('_', ' ')} | Department: {schedule.department}
+                    {schedule.academicYear && ` | Year: ${schedule.academicYear}`}
+                    {schedule.semester && ` | Semester: ${schedule.semester}`}
+                  </p>
+                  {schedule.fileUrl && (
+                    <a
+                      href={`http://localhost:3000${schedule.fileUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="exam-notice-attachment"
+                      style={{ display: 'inline-block', marginTop: '8px', color: '#2563eb' }}
+                    >
+                      📎 Download {schedule.fileName || 'Schedule File'}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
@@ -372,13 +525,43 @@ const HomeDashboard: React.FC = () => {
                 <span className="progress-percent">{totalProgress}%</span>
                 <span className="progress-label">Overall Completion</span>
               </div>
+            </div>
+
+          {/* AI Assistant Card */}
+          <div className="dashboard-card" onClick={navigateToChat}>
+            <div className="card-header-modern">
+              <div className="card-icon-medium">
+                <FaBrain />
+              </div>
+              <h3>AI Assistant</h3>
+            </div>
+            <div className="card-content">
+              <p>Ask questions about your course materials</p>
+              <button 
+                onClick={handleAskAI}
+                style={{
+                  background: '#10b981',
+                  color: 'white',
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  width: '100%',
+                  marginTop: '12px'
+                }}
+              >
+                🤖 Ask AI
+              </button>
+            </div>
               <div className="progress-bar-large">
                 <div className="progress-fill-large" style={{ width: `${totalProgress}%` }}></div>
               </div>
             </div>
             <div className="top-module">
-              <span className="top-module-label">Best progress:</span>
-              <span className="top-module-name">{modules.reduce((a, b) => a.progress > b.progress ? a : b).name}</span>
+              <span className="top-module-label">Latest material:</span>
+              <span className="top-module-name">{modules.length > 0 ? modules[0].title : 'None yet'}</span>
             </div>
             <div className="card-footer-modern">
               <span className="card-link">Browse all modules →</span>
@@ -403,6 +586,85 @@ const HomeDashboard: React.FC = () => {
               <span className="card-link">View all commands →</span>
             </div>
           </div>
+        </div>
+
+        {/* Available Materials List - UPDATED WITH VIEW AND DOWNLOAD BUTTONS */}
+        <div className="dashboard-section-modern">
+          <div className="section-header-modern">
+            <h3><FaBook /> Available Course Materials</h3>
+            {modulesLoading && <span className="loading-text">Loading...</span>}
+          </div>
+          {modulesError && (
+            <div className="empty-state-modern" style={{ color: '#ef4444' }}>
+              <p>Error: {modulesError}</p>
+            </div>
+          )}
+          {!modulesError && modules.length === 0 && !modulesLoading ? (
+            <div className="empty-state-modern">
+              <p>No materials available yet.</p>
+            </div>
+          ) : (
+            <div className="materials-list-modern">
+              {modules.map((material: any) => (
+                <div key={material._id} className="material-item-modern">
+                  <div className="material-info">
+                    <h4 className="material-title">{material.title}</h4>
+                    <p className="material-meta">
+                      <span className="course-code">{material.courseCode}</span>
+                      {material.materialType && (
+                        <span className="material-type">{material.materialType.replace('_', ' ')}</span>
+                      )}
+                      {material.department && (
+                        <span className="material-dept">{material.department}</span>
+                      )}
+                    </p>
+                    {material.description && (
+                      <p className="material-desc">{material.description}</p>
+                    )}
+                    <div className="material-file-info">
+                      <span className="file-name">📄 {material.fileName}</span>
+                      <span className="file-size">
+                        {material.fileSize ? formatFileSize(material.fileSize) : 'Unknown size'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="material-buttons">
+                    <button 
+                      onClick={() => openMaterialViewer(material)}
+                      style={{
+                        background: '#10b981',
+                        color: 'white',
+                        padding: '10px 20px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        marginRight: '10px'
+                      }}
+                    >
+                      📖 View
+                    </button>
+                    <button 
+                      onClick={() => handleDownload(material)}
+                      style={{
+                        background: '#3b82f6',
+                        color: 'white',
+                        padding: '10px 20px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ⬇️ Download
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Quick Stats Section */}
@@ -446,6 +708,17 @@ const HomeDashboard: React.FC = () => {
           <span>Listening for commands...</span>
         </div>
       )}
+
+      {/* Material Viewer Modal */}
+      {showMaterialViewer && selectedMaterial && (
+        <MaterialViewer 
+          material={selectedMaterial}
+          onClose={closeMaterialViewer}
+        />
+      )}
+
+      {/* Voice Assistant */}
+      <HuggingFaceVoiceAssistant onClose={() => {}} />
     </div>
   );
 };

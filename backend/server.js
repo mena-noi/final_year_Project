@@ -28,6 +28,7 @@ app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/exams', require('./routes/Exams'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/stt', require('./routes/stt'));
+app.use('/api/tts', require('./routes/tts'));
 // Add after other route imports
 app.use('/api/embeddings', require('./routes/embeddings'));
 app.use('/api/rag', require('./routes/ragChat'));

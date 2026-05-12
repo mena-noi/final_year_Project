@@ -1,0 +1,239 @@
+.voice-assistant {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  font-family: 'Inter', sans-serif;
+}
+
+.voice-assistant.minimized {
+  width: 60px;
+  height: 60px;
+}
+
+.voice-assistant-minimized {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.voice-assistant-minimized:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+}
+
+.voice-assistant-minimized svg {
+  color: white;
+  font-size: 24px;
+}
+
+.voice-assistant-minimized svg.listening {
+  color: #10b981;
+  animation: pulse 1.5s infinite;
+}
+
+.voice-assistant.expanded {
+  width: 380px;
+  max-height: 500px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.voice-assistant-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.voice-assistant-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.voice-assistant-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.voice-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.voice-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.voice-btn.listening {
+  background: #10b981;
+  animation: pulse 1.5s infinite;
+}
+
+.minimize-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.voice-assistant-content {
+  padding: 20px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.voice-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulse-dot {
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+.status-indicator.idle .pulse-dot {
+  background: #64748b;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.voice-transcript {
+  background: #f0f9ff;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.transcript-text {
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.voice-commands {
+  margin-bottom: 16px;
+}
+
+.voice-commands h4 {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.voice-commands ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.voice-commands li {
+  font-size: 12px;
+  color: #64748b;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.voice-help {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.voice-help h4 {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.voice-help ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.voice-help li {
+  font-size: 12px;
+  color: #64748b;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+}
+
+.voice-help li::before {
+  content: "🎤";
+  margin-right: 8px;
+}
+
+.voice-assistant-unsupported {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.unsupported-content h3 {
+  color: #ef4444;
+  margin-bottom: 12px;
+}
+
+.unsupported-content p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}

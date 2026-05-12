@@ -510,6 +510,7 @@
 }
 
 .ds-voice-btn,
+.ds-rag-btn,
 .ds-send-btn {
   width: 34px;
   height: 34px;
@@ -526,6 +527,12 @@
 .ds-voice-btn.listening {
   background: #b91c1c;
   border-color: #ef4444;
+  color: #fff;
+}
+
+.ds-rag-btn.loading {
+  background: #2563eb;
+  border-color: #3b82f6;
   color: #fff;
 }
 
@@ -701,7 +708,8 @@
   color: #6b7280;
 }
 
-.ds-chat-interface.light-theme .ds-voice-btn {
+.ds-chat-interface.light-theme .ds-voice-btn,
+.ds-chat-interface.light-theme .ds-rag-btn {
   background: #ffffff;
   border-color: #d1d5db;
   color: #111827;

@@ -6,7 +6,7 @@ const { DepartmentHead, Lecturer } = require('../models/Admin');
 const { generateToken } = require('../utils/jwt');
 const { authMiddleware } = require('../middleware/auth');
 
-// ============ STUDENT LOGIN (with JWT) ============
+// ============ STUDENT LOGIN ============
 router.post('/student/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -72,7 +72,6 @@ router.post('/student/register', async (req, res) => {
     const student = new Student({ name, email, password, batchYear, department });
     await student.save();
 
-    // Generate JWT token
     const token = generateToken(student._id, 'student', student.email);
 
     res.status(201).json({
@@ -93,6 +92,7 @@ router.post('/student/register', async (req, res) => {
 });
 
 // ============ DEPARTMENT HEAD LOGIN ============
+// Updated to use async comparePassword (no callback)
 router.post('/department-head/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -107,7 +107,6 @@ router.post('/department-head/login', async (req, res) => {
     }
 
     const isPasswordValid = await deptHead.comparePassword(password);
-
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -130,45 +129,42 @@ router.post('/department-head/login', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 // ============ DEPARTMENT HEAD REGISTRATION ============
+// NEW version with explicit password hashing and no token (as requested)
 router.post('/department-head/register', async (req, res) => {
   try {
     const { name, email, password, department } = req.body;
 
     // Validate required fields
     if (!name || !email || !password || !department) {
-      return res.status(400).json({ error: 'Name, email, password, and department are required' });
+      return res.status(400).json({
+        error: 'Name, email, password, and department are required'
+      });
     }
 
     // Check if department head already exists
     const existingDeptHead = await DepartmentHead.findOne({ email });
     if (existingDeptHead) {
-      return res.status(400).json({ error: 'Department head with this email already exists' });
+      return res.status(400).json({
+        error: 'Department head with this email already exists'
+      });
     }
 
     // Create new department head
+    // Password will be hashed automatically by the pre-save hook in the model
     const departmentHead = new DepartmentHead({
       name,
       email,
-      password,
+      password, // Plain password - model will hash it
       department
     });
 
     await departmentHead.save();
 
-    // Generate JWT token
-    const token = generateToken(departmentHead._id, 'department_head', departmentHead.email);
-
+    // Do NOT return a token here (as per your request)
     res.status(201).json({
-      message: 'Department head registered successfully',
-      token,
-      user: {
-        id: departmentHead._id,
-        name: departmentHead.name,
-        email: departmentHead.email,
-        role: 'department_head',
-        department: departmentHead.department
-      }
+      message: 'Department head registered successfully'
     });
   } catch (error) {
     console.error('Department head registration error:', error);
@@ -191,7 +187,6 @@ router.post('/lecturer/login', async (req, res) => {
     }
 
     const isPasswordValid = await lecturer.comparePassword(password);
-
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -216,12 +211,24 @@ router.post('/lecturer/login', async (req, res) => {
   }
 });
 
-// Department Head registers a lecturer
+// ============ LECTURER REGISTRATION (by Department Head) ============
 router.post('/lecturer/register', async (req, res) => {
   try {
-    const { departmentHeadEmail, lecturerName, lecturerEmail, lecturerDepartment, lecturerPassword } = req.body;
+    const {
+      departmentHeadEmail,
+      lecturerName,
+      lecturerEmail,
+      lecturerDepartment,
+      lecturerPassword
+    } = req.body;
 
-    if (!departmentHeadEmail || !lecturerName || !lecturerEmail || !lecturerDepartment || !lecturerPassword) {
+    if (
+      !departmentHeadEmail ||
+      !lecturerName ||
+      !lecturerEmail ||
+      !lecturerDepartment ||
+      !lecturerPassword
+    ) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -235,14 +242,11 @@ router.post('/lecturer/register', async (req, res) => {
       return res.status(400).json({ error: 'Lecturer already exists' });
     }
 
-    // ✅ MANUALLY HASH THE PASSWORD
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(lecturerPassword, salt);
-
+    // Password will be hashed automatically by the model pre-save hook
     const lecturer = new Lecturer({
       name: lecturerName,
       email: lecturerEmail,
-      password: hashedPassword,  // Use hashed password
+      password: lecturerPassword, // plain password - model will hash it
       department: lecturerDepartment,
       registeredBy: departmentHead._id,
       isPasswordChanged: false
@@ -265,7 +269,8 @@ router.post('/lecturer/register', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// Lecturer change password
+
+// ============ LECTURER CHANGE PASSWORD ============
 router.post('/lecturer/change-password', authMiddleware, async (req, res) => {
   try {
     const { email, oldPassword, newPassword } = req.body;
@@ -288,11 +293,11 @@ router.post('/lecturer/change-password', authMiddleware, async (req, res) => {
       return res.status(401).json({ error: 'Old password is incorrect' });
     }
 
+    // Set plain password - model pre-save hook will hash it automatically
     lecturer.password = newPassword;
     lecturer.isPasswordChanged = true;
     await lecturer.save();
 
-    // Generate new token
     const token = generateToken(lecturer._id, 'lecturer', lecturer.email);
 
     res.json({

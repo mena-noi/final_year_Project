@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { registerLecturer, uploadSchedule, fetchSchedules } from '../api/api';
 import { ClassSchedule, Module } from '../types';
 import {
   CalendarDaysIcon,
@@ -81,10 +82,18 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
     { id: '2', name: 'Prof. Samuel Tadesse', email: 'samuel.tadesse@haramaya.edu.et', department: 'Information Systems', status: 'Pending', courses: 0, lastActive: 'Just invited' },
     { id: '3', name: 'Mekdes Alemu', email: 'mekdes.alemu@haramaya.edu.et', department: 'Software Engineering', status: 'Active', courses: 2, lastActive: 'Yesterday' }
   ]);
-  const [scheduleForm, setScheduleForm] = useState({ fileName: '' });
+  const [scheduleForm, setScheduleForm] = useState({
+    title: '',
+    academicYear: '',
+    semester: '',
+    department: '',
+    file: null as File | null,
+    fileName: ''
+  });
   const [activeScheduleType, setActiveScheduleType] = useState<ScheduleType>('semester');
-  const [scheduleItems, setScheduleItems] = useState<DepartmentSchedule[]>([]);
+  const [scheduleItems, setScheduleItems] = useState<any[]>([]);
   const [scheduleError, setScheduleError] = useState('');
+  const [scheduleLoading, setScheduleLoading] = useState(false);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -93,6 +102,19 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
   });
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  // Fetch schedules from backend on mount
+  useEffect(() => {
+    const loadSchedules = async () => {
+      try {
+        const response = await fetchSchedules();
+        setScheduleItems(response.schedules || []);
+      } catch (error) {
+        console.error('Failed to fetch schedules:', error);
+      }
+    };
+    loadSchedules();
+  }, []);
 
   // Logout handler
   const handleLogout = () => {
@@ -149,7 +171,9 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreateLecturer = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCreateLecturer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lecturerForm.name || !lecturerForm.email || !lecturerForm.department || !lecturerForm.password || !lecturerForm.confirmPassword) {
       setFormError('All fields are required.');
@@ -160,31 +184,36 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
       return;
     }
 
-    const newLecturer: LecturerRecord = {
-      id: Date.now().toString(),
-      name: lecturerForm.name,
-      email: lecturerForm.email,
-      department: lecturerForm.department,
-      status: 'Active',
-      courses: 0,
-      lastActive: 'Just created'
-    };
-
-    setLecturers((prev) => [newLecturer, ...prev]);
-    const storedLecturers = JSON.parse(localStorage.getItem('lecturerAccounts') || '[]');
-    storedLecturers.push({
-      id: newLecturer.id,
-      name: newLecturer.name,
-      email: newLecturer.email,
-      department: newLecturer.department,
-      password: lecturerForm.password,
-      role: 'lecturer'
-    });
-    localStorage.setItem('lecturerAccounts', JSON.stringify(storedLecturers));
-
-    setLecturerForm({ name: '', email: '', department: '', password: '', confirmPassword: '' });
+    setIsSubmitting(true);
     setFormError('');
-    setShowLecturerForm(false);
+
+    try {
+      await registerLecturer(
+        currentUser?.email || '',
+        lecturerForm.name,
+        lecturerForm.email,
+        lecturerForm.department,
+        lecturerForm.password
+      );
+
+      const newLecturer: LecturerRecord = {
+        id: Date.now().toString(),
+        name: lecturerForm.name,
+        email: lecturerForm.email,
+        department: lecturerForm.department,
+        status: 'Active',
+        courses: 0,
+        lastActive: 'Just created'
+      };
+
+      setLecturers((prev) => [newLecturer, ...prev]);
+      setLecturerForm({ name: '', email: '', department: '', password: '', confirmPassword: '' });
+      setShowLecturerForm(false);
+    } catch (error: any) {
+      setFormError(error?.message || 'Failed to register lecturer. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderRegisterLecturers = () => (
@@ -244,8 +273,12 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
             onChange={(e) => setLecturerForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
             className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
-          <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
-            Save Lecturer
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Lecturer'}
           </button>
           {formError && (
             <p className="text-red-600 text-sm md:col-span-2 lg:col-span-3">{formError}</p>
@@ -321,23 +354,41 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
     exam: 'Exam Schedule'
   };
 
-  const visibleSchedules = scheduleItems.filter((item) => item.type === activeScheduleType);
+  const typeMapping: Record<ScheduleType, string> = {
+    semester: 'semester_schedule',
+    yearly: 'yearly_calendar',
+    exam: 'exam_schedule'
+  };
+  const visibleSchedules = scheduleItems.filter((item) => item.type === typeMapping[activeScheduleType]);
 
-  const handleAddScheduleItem = (e: React.FormEvent) => {
+  const handleAddScheduleItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!scheduleForm.fileName) {
-      setScheduleError('Please upload a file first.');
+    if (!scheduleForm.title || !scheduleForm.academicYear || !scheduleForm.department || !scheduleForm.file) {
+      setScheduleError('Please fill all required fields and upload a file.');
       return;
     }
 
-    const newItem: DepartmentSchedule = {
-      id: Date.now().toString(),
-      type: activeScheduleType,
-      fileName: scheduleForm.fileName
-    };
-    setScheduleItems((prev) => [newItem, ...prev]);
-    setScheduleForm({ fileName: '' });
+    setScheduleLoading(true);
     setScheduleError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', scheduleForm.file);
+      formData.append('title', scheduleForm.title);
+      formData.append('type', activeScheduleType === 'yearly' ? 'yearly_calendar' : activeScheduleType === 'semester' ? 'semester_schedule' : 'exam_schedule');
+      formData.append('academicYear', scheduleForm.academicYear);
+      formData.append('semester', scheduleForm.semester || '');
+      formData.append('department', scheduleForm.department);
+
+      const response = await uploadSchedule(formData);
+
+      setScheduleItems((prev) => [response.schedule, ...prev]);
+      setScheduleForm({ title: '', academicYear: '', semester: '', department: '', file: null, fileName: '' });
+    } catch (error: any) {
+      setScheduleError(error?.message || 'Failed to upload schedule. Please try again.');
+    } finally {
+      setScheduleLoading(false);
+    }
   };
 
   const renderScheduleSection = () => (
@@ -370,26 +421,59 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
         ))}
       </div>
 
-      <form onSubmit={handleAddScheduleItem} className="glass-card p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <label className="px-3 py-2 rounded-lg border border-dashed border-gray-300 text-sm cursor-pointer hover:bg-gray-50">
-          Upload Schedule File
+      <form onSubmit={handleAddScheduleItem} className="glass-card p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <input
+          type="text"
+          placeholder="Schedule Title *"
+          value={scheduleForm.title}
+          onChange={(e) => setScheduleForm((prev) => ({ ...prev, title: e.target.value }))}
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Academic Year * (e.g. 2024-2025)"
+          value={scheduleForm.academicYear}
+          onChange={(e) => setScheduleForm((prev) => ({ ...prev, academicYear: e.target.value }))}
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Semester (e.g. Fall, Spring)"
+          value={scheduleForm.semester}
+          onChange={(e) => setScheduleForm((prev) => ({ ...prev, semester: e.target.value }))}
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <input
+          type="text"
+          placeholder="Department *"
+          value={scheduleForm.department}
+          onChange={(e) => setScheduleForm((prev) => ({ ...prev, department: e.target.value }))}
+          className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          required
+        />
+        <label className="px-3 py-2 rounded-lg border border-dashed border-gray-300 text-sm cursor-pointer hover:bg-gray-50 flex items-center">
+          <span className="truncate">{scheduleForm.fileName || 'Upload Schedule File *'}</span>
           <input
             type="file"
             accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
             onChange={(e) => {
-              const selectedFile = e.target.files?.[0];
-              setScheduleForm((prev) => ({ ...prev, fileName: selectedFile?.name || '' }));
+              const selectedFile = e.target.files?.[0] || null;
+              setScheduleForm((prev) => ({ ...prev, file: selectedFile, fileName: selectedFile?.name || '' }));
             }}
             className="hidden"
+            required
           />
-          <span className="block text-xs text-gray-500 mt-1 truncate">
-            {scheduleForm.fileName || 'No file selected'}
-          </span>
         </label>
-        <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
-          Add {scheduleTypeLabel[activeScheduleType]}
+        <button
+          type="submit"
+          disabled={scheduleLoading}
+          className={`bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg ${scheduleLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {scheduleLoading ? 'Uploading...' : `Add ${scheduleTypeLabel[activeScheduleType]}`}
         </button>
-        {scheduleError && <p className="text-red-600 text-sm md:col-span-3">{scheduleError}</p>}
+        {scheduleError && <p className="text-red-600 text-sm md:col-span-2 lg:col-span-3">{scheduleError}</p>}
       </form>
 
       <div className="glass-card p-6">
@@ -400,11 +484,24 @@ const HeadDashboard: React.FC<HeadDashboardProps> = ({ onLogout }) => {
           </p>
         ) : (
           <div className="space-y-3">
-            {visibleSchedules.map((item) => (
-              <div key={item.id} className={`p-4 rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white'}`}>
-                <p className={isDarkMode ? 'text-blue-300 text-sm' : 'text-blue-600 text-sm'}>
-                  File: {item.fileName}
+            {visibleSchedules.map((item: any) => (
+              <div key={item._id} className={`p-4 rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white'}`}>
+                <p className="font-semibold text-base">{item.title}</p>
+                <p className={isDarkMode ? 'text-gray-400 text-sm' : 'text-gray-500 text-sm'}>
+                  {item.academicYear && `Year: ${item.academicYear}`}
+                  {item.semester && ` | Semester: ${item.semester}`}
+                  {item.department && ` | Dept: ${item.department}`}
                 </p>
+                {item.fileUrl && (
+                  <a
+                    href={`http://localhost:3000${item.fileUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 text-sm hover:underline mt-2 inline-block"
+                  >
+                    📎 Download {item.fileName || 'File'}
+                  </a>
+                )}
               </div>
             ))}
           </div>

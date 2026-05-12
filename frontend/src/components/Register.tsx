@@ -13,10 +13,13 @@ import {
   FaShieldAlt
 } from "react-icons/fa";
 import "./Register.css";
+import { useTextToSpeech } from "../hooks/useTextToSpeech";
+import i18n from "../i18n";
 
 function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { speak: speakTts, stop: stopTts } = useTextToSpeech();
   const [voiceGuide, setVoiceGuide] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,10 +42,7 @@ function Register() {
 
   const speak = (text: string) => {
     if (!voiceGuide) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.85;
-    window.speechSynthesis.speak(utterance);
+    speakTts(text, { rate: 0.85, lang: i18n.language as any });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -52,7 +52,7 @@ function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.batchYear || !formData.email || !formData.password) {
+    if (!formData.name || !formData.batchYear || !formData.department || !formData.email || !formData.password) {
       setError("Please fill in all required fields");
       speak("Please fill in all required fields");
       return;
@@ -96,7 +96,7 @@ function Register() {
   const toggleVoiceGuide = () => {
     setVoiceGuide(!voiceGuide);
     if (!voiceGuide) speak("Voice guidance enabled");
-    else window.speechSynthesis.cancel();
+    else stopTts();
   };
 
   return (
@@ -137,6 +137,19 @@ function Register() {
                     <option value="3">Year 3</option>
                     <option value="4">Year 4</option>
                     <option value="5">Year 5</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label><FaGraduationCap /> Department *</label>
+                  <select name="department" value={formData.department} onChange={handleChange}>
+                    <option value="">Select your department</option>
+                    <option value="General">General</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Business">Business</option>
+                    <option value="Medicine">Medicine</option>
+                    <option value="Arts">Arts</option>
                   </select>
                 </div>
 
