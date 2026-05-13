@@ -29,6 +29,26 @@
   box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
 }
 
+.voice-text-input {
+  margin-bottom: 15px;
+}
+
+.command-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8f9fa;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.command-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 .voice-assistant-minimized svg {
   color: white;
   font-size: 24px;

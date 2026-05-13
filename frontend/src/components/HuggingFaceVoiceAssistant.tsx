@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FaMicrophone, FaVolumeUp, FaTimes, FaRobot, FaGlobe, FaSpinner } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaRobot, FaTimes, FaMicrophone, FaGlobe, FaVolumeUp, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import { useHuggingFaceSpeech } from '../hooks/useHuggingFaceSpeech';
 import './HuggingFaceVoiceAssistant.css';
 
@@ -14,9 +14,7 @@ const HuggingFaceVoiceAssistant: React.FC<HuggingFaceVoiceAssistantProps> = ({ o
     isSpeaking, 
     currentLanguage, 
     supportedLanguages, 
-    startListening, 
-    stopListening, 
-    speak, 
+    speak,
     setLanguage,
     isSupported,
     isLoading,
@@ -32,24 +30,89 @@ const HuggingFaceVoiceAssistant: React.FC<HuggingFaceVoiceAssistantProps> = ({ o
     const normalizedCommand = command.toLowerCase();
     console.log(`Voice command detected (${currentLanguage}):`, command);
 
-    // Language-specific commands
+    // Enhanced navigation commands with comprehensive guidance
     if (currentLanguage === 'am-ET') {
       if (normalizedCommand.includes('ተር ምኛ ተር ም')) {
-        speak('የአትተር ይልተር', currentLanguage);
+        speak('የአስተር ተር ምኛ ተር ም ክፍትል ነው', currentLanguage);
         window.location.hash = '#chat';
-      } else if (normalizedCommand.includes('ሞርልትትትንንማክትን')) {
-        speak('የትማልትትትንንማክትን', currentLanguage);
+      } else if (normalizedCommand.includes('ሞድዮሎች') || normalizedCommand.includes('ሞድዮሎችን')) {
+        speak('የሞድዮሎች ክፍትል ነው', currentLanguage);
         window.location.hash = '#modules';
-      } else if (normalizedCommand.includes('ማድግትትንንን')) {
-        speak('ማድግትትንንን', currentLanguage);
+      } else if (normalizedCommand.includes('ማስታወሻዎች') || normalizedCommand.includes('ማስታወሻ')) {
+        speak('የማስታወሻዎች ክፍትል ነው', currentLanguage);
         window.location.hash = '#reminders';
       } else if (normalizedCommand.includes('እምኛት')) {
-        speak('የሚውተር እምኛት', currentLanguage);
-      } else if (normalizedCommand.includes('የሚውተር እምኛት')) {
-        speak('የሚውተር እምኛት', currentLanguage);
+        speak('የትእዛዝ እምኛት ክፍትል ነው', currentLanguage);
+      } else if (normalizedCommand.includes('መማክት') || normalizedCommand.includes('መምርት')) {
+        speak('ዋና መማክት ወደሚገባበት ይመለሳል', currentLanguage);
+        window.location.href = 'http://localhost:5173/dashboard';
+      } else if (normalizedCommand.includes('ቤትር') || normalizedCommand.includes('ቤትርን')) {
+        speak('የመግቢያ ገጽ ይክፈታል', currentLanguage);
+        window.location.href = 'http://localhost:5173/login';
+      } else if (normalizedCommand.includes('ስትም') || normalizedCommand.includes('ስትምን')) {
+        speak('የምዝገባ ገጽ ይክፈታል', currentLanguage);
+        window.location.href = 'http://localhost:5173/register';
+      }
+    } else {
+      // Enhanced English commands with comprehensive guidance
+      if (normalizedCommand.includes('open chat') || normalizedCommand.includes('ai chat') || normalizedCommand.includes('assistant')) {
+        speak('Opening AI chat assistant. You can ask me questions about your studies and get help with your coursework.', currentLanguage);
+        window.location.hash = '#chat';
+      } else if (normalizedCommand.includes('open modules') || normalizedCommand.includes('learning') || normalizedCommand.includes('materials')) {
+        speak('Opening learning modules. Here you can access all your course materials and study resources.', currentLanguage);
+        window.location.hash = '#modules';
+      } else if (normalizedCommand.includes('open reminders') || normalizedCommand.includes('reminders') || normalizedCommand.includes('tasks')) {
+        speak('Opening reminders. You can manage your study schedule and important deadlines here.', currentLanguage);
+        window.location.hash = '#reminders';
+      } else if (normalizedCommand.includes('home') || normalizedCommand.includes('dashboard') || normalizedCommand.includes('main')) {
+        speak('Returning to main dashboard. This is your central hub for all learning activities.', currentLanguage);
+        window.location.href = 'http://localhost:5173/dashboard';
+      } else if (normalizedCommand.includes('login') || normalizedCommand.includes('sign in')) {
+        speak('Opening login page. Please enter your credentials to access your account.', currentLanguage);
+        window.location.href = 'http://localhost:5173/login';
+      } else if (normalizedCommand.includes('register') || normalizedCommand.includes('sign up') || normalizedCommand.includes('create account')) {
+        speak('Opening registration page. Create your account to get started with your learning journey.', currentLanguage);
+        window.location.href = 'http://localhost:5173/register';
+      } else if (normalizedCommand.includes('profile') || normalizedCommand.includes('account') || normalizedCommand.includes('settings')) {
+        speak('Opening profile settings. Here you can manage your personal information and preferences.', currentLanguage);
+        window.location.href = 'http://localhost:5173/profile';
+      } else if (normalizedCommand.includes('explore') || normalizedCommand.includes('discover') || normalizedCommand.includes('search')) {
+        speak('Opening explore section. Discover new learning materials and resources.', currentLanguage);
+        window.location.hash = '#explore';
+      } else if (normalizedCommand.includes('progress') || normalizedCommand.includes('stats') || normalizedCommand.includes('analytics')) {
+        speak('Opening progress tracking. View your learning statistics and achievements.', currentLanguage);
+        window.location.hash = '#progress';
+      } else if (normalizedCommand.includes('help') || normalizedCommand.includes('commands') || normalizedCommand.includes('what can i do')) {
+        speak('Available voice commands: Open chat, Open modules, Open reminders, Home, Login, Register, Profile, Explore, Progress, Help, Stop listening, Close assistant. Try saying any of these to navigate.', currentLanguage);
+      } else if (normalizedCommand.includes('stop listening') || normalizedCommand.includes('stop') || normalizedCommand.includes('pause')) {
+        speak('Voice recognition stopped. Click the microphone button to resume.', currentLanguage);
+      } else if (normalizedCommand.includes('close assistant') || normalizedCommand.includes('minimize') || normalizedCommand.includes('hide')) {
+        setIsMinimized(true);
+        speak('Voice assistant minimized. Click the microphone icon to expand.', currentLanguage);
+      } else if (normalizedCommand.includes('where am i') || normalizedCommand.includes('current page')) {
+        speak(`You are currently on the dashboard page. Available sections include chat, modules, reminders, and more.`, currentLanguage);
+      } else if (normalizedCommand.includes('navigate to') || normalizedCommand.includes('go to')) {
+        // Extract destination from command
+        const destination = normalizedCommand.replace(/navigate to|go to/i, '').trim();
+        if (destination.includes('chat')) {
+          speak('Navigating to AI chat assistant.', currentLanguage);
+          window.location.hash = '#chat';
+        } else if (destination.includes('module') || destination.includes('material')) {
+          speak('Navigating to learning modules.', currentLanguage);
+          window.location.hash = '#modules';
+        } else if (destination.includes('reminder') || destination.includes('task')) {
+          speak('Navigating to reminders.', currentLanguage);
+          window.location.hash = '#reminders';
+        } else if (destination.includes('home') || destination.includes('dashboard')) {
+          speak('Navigating to main dashboard.', currentLanguage);
+          window.location.href = 'http://localhost:5173/dashboard';
+        }
+      } else {
+        // Default response for unrecognized commands
+        speak('I didn\'t understand that command. Try saying "help" to see all available commands.', currentLanguage);
       }
     }
-    
+
     // Default: add unrecognized commands to list
     setVoiceCommands(prev => [...prev.slice(-4), command]);
   };
@@ -123,7 +186,7 @@ const HuggingFaceVoiceAssistant: React.FC<HuggingFaceVoiceAssistantProps> = ({ o
             <div className="voice-assistant-controls">
               <button 
                 className={`voice-btn ${isListening ? 'listening' : ''}`}
-                onClick={isListening ? stopListening : startListening}
+                onClick={() => speak('Voice recognition is currently disabled. Please use text commands instead.', currentLanguage)}
                 disabled={isLoading}
               >
                 {isLoading ? <FaSpinner className="spinner-icon" /> : (isListening ? <FaTimes /> : <FaMicrophone />)}
@@ -176,10 +239,27 @@ const HuggingFaceVoiceAssistant: React.FC<HuggingFaceVoiceAssistantProps> = ({ o
               </div>
             </div>
 
+            {/* Text Input for Commands */}
+            <div className="voice-text-input">
+              <input
+                type="text"
+                placeholder={`Type a command (${currentLanguage === 'am-ET' ? 'እምኛት' : 'help'})...`}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const target = e.target as HTMLInputElement;
+                    processVoiceCommand(target.value);
+                    target.value = '';
+                  }
+                }}
+                className="command-input"
+              />
+            </div>
+
             {/* Error Display */}
             {error && (
               <div className="voice-error">
-                <p>Error: {error}</p>
+                <FaExclamationTriangle />
+                <span>{error}</span>
               </div>
             )}
 
@@ -204,16 +284,24 @@ const HuggingFaceVoiceAssistant: React.FC<HuggingFaceVoiceAssistantProps> = ({ o
               </div>
             )}
 
-            {/* Help Section */}
+            {/* Enhanced Help Section */}
             <div className="voice-help">
               <h4>Voice Commands ({getCurrentLanguageInfo().name}):</h4>
               <ul>
-                <li>"Open chat" / "ተር ምኛ ተር ም" / "ወረተር አትማክ" - Open AI chat</li>
-                <li>"Open modules" / "ሞርልቅታትን ማክትን" / "ማድግቅታትን" - View learning materials</li>
-                <li>"Open reminders" / "ማድግቅታትን" / "ማድግቅታትን" - Check reminders</li>
-                <li>"Help" / "እምኛት" - Show all commands</li>
-                <li>"Stop listening" / "አትማክ" - Stop voice recognition</li>
-                <li>"Close assistant" / "የሚውተር እኝኛት" - Close voice panel</li>
+                <li>"Open chat" / "AI chat" / "Assistant" / "ተር ምኛ ተር ም" - Open AI chat assistant</li>
+                <li>"Open modules" / "Learning" / "Materials" / "ሞርልቅታትን ማክትን" - Access course materials</li>
+                <li>"Open reminders" / "Tasks" / "ማድግቅታትን" - Manage study schedule</li>
+                <li>"Home" / "Dashboard" / "Main" / "መማክት" - Return to main dashboard</li>
+                <li>"Login" / "Sign in" / "ቤትር" - Access your account</li>
+                <li>"Register" / "Sign up" / "ስትም" - Create new account</li>
+                <li>"Profile" / "Account" / "Settings" - Manage personal info</li>
+                <li>"Explore" / "Discover" / "Search" - Find new resources</li>
+                <li>"Progress" / "Stats" / "Analytics" - View learning stats</li>
+                <li>"Navigate to [page]" / "Go to [page]" - Jump to specific section</li>
+                <li>"Where am I" / "Current page" - Know your location</li>
+                <li>"Help" / "Commands" / "እምኛት" - Show all commands</li>
+                <li>"Stop listening" / "Stop" / "Pause" / "አትማክ" - Stop voice input</li>
+                <li>"Close assistant" / "Minimize" / "Hide" / "የሚውተር እምኛት" - Minimize voice panel</li>
               </ul>
             </div>
           </div>

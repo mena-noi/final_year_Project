@@ -1,19 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const { authMiddleware, roleMiddleware } = require('../middleware/auth');
 
 // In-memory storage for reminders (in production, use a database)
 let reminders = [];
 let nextId = 1;
 
-// Helper function to validate student access
-const validateStudent = (req, res, next) => {
-  // This would typically check authentication middleware
-  // For now, we'll assume the middleware has validated the user
-  next();
-};
-
 // Create a reminder based on a schedule
-router.post('/student', validateStudent, async (req, res) => {
+router.post('/student', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const {
       scheduleId,
@@ -25,9 +19,9 @@ router.post('/student', validateStudent, async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!scheduleId || !reminderType || !reminderTime) {
+    if (!title || !reminderType || !reminderTime) {
       return res.status(400).json({ 
-        error: 'Schedule ID, reminder type, and reminder time are required' 
+        error: 'Title, reminder type, and reminder time are required' 
       });
     }
 
@@ -75,7 +69,7 @@ router.post('/student', validateStudent, async (req, res) => {
 });
 
 // Get all reminders for a student
-router.get('/student', validateStudent, async (req, res) => {
+router.get('/student', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { 
       reminderType, 
@@ -117,7 +111,7 @@ router.get('/student', validateStudent, async (req, res) => {
 });
 
 // Get a specific reminder by ID
-router.get('/student/:id', validateStudent, async (req, res) => {
+router.get('/student/:id', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { id } = req.params;
     const reminder = reminders.find(r => r.id === parseInt(id));
@@ -137,7 +131,7 @@ router.get('/student/:id', validateStudent, async (req, res) => {
 });
 
 // Update a reminder
-router.put('/student/:id', validateStudent, async (req, res) => {
+router.put('/student/:id', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { id } = req.params;
     const reminderIndex = reminders.findIndex(r => r.id === parseInt(id));
@@ -165,7 +159,7 @@ router.put('/student/:id', validateStudent, async (req, res) => {
 });
 
 // Delete a reminder
-router.delete('/student/:id', validateStudent, async (req, res) => {
+router.delete('/student/:id', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { id } = req.params;
     const reminderIndex = reminders.findIndex(r => r.id === parseInt(id));
@@ -187,7 +181,7 @@ router.delete('/student/:id', validateStudent, async (req, res) => {
 });
 
 // Toggle reminder active status
-router.patch('/student/:id/toggle', validateStudent, async (req, res) => {
+router.patch('/student/:id/toggle', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { id } = req.params;
     const reminderIndex = reminders.findIndex(r => r.id === parseInt(id));
@@ -210,7 +204,7 @@ router.patch('/student/:id/toggle', validateStudent, async (req, res) => {
 });
 
 // Get reminders for a specific schedule
-router.get('/student/schedule/:scheduleId', validateStudent, async (req, res) => {
+router.get('/student/schedule/:scheduleId', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { scheduleId } = req.params;
     const scheduleReminders = reminders.filter(r => r.scheduleId === parseInt(scheduleId));
@@ -227,7 +221,7 @@ router.get('/student/schedule/:scheduleId', validateStudent, async (req, res) =>
 });
 
 // Get upcoming reminders (next 7 days)
-router.get('/student/upcoming', validateStudent, async (req, res) => {
+router.get('/student/upcoming', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const today = new Date();
     const weekFromNow = new Date(today);
@@ -252,7 +246,7 @@ router.get('/student/upcoming', validateStudent, async (req, res) => {
 });
 
 // Mark reminder as triggered
-router.patch('/student/:id/trigger', validateStudent, async (req, res) => {
+router.patch('/student/:id/trigger', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { id } = req.params;
     const reminderIndex = reminders.findIndex(r => r.id === parseInt(id));
@@ -276,7 +270,7 @@ router.patch('/student/:id/trigger', validateStudent, async (req, res) => {
 });
 
 // Get reminder statistics
-router.get('/student/stats', validateStudent, async (req, res) => {
+router.get('/student/stats', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const stats = {
       total: reminders.length,
@@ -311,7 +305,7 @@ router.get('/student/stats', validateStudent, async (req, res) => {
 });
 
 // Create multiple reminders at once
-router.post('/student/bulk', validateStudent, async (req, res) => {
+router.post('/student/bulk', authMiddleware, roleMiddleware('student'), async (req, res) => {
   try {
     const { reminders: newReminders } = req.body;
 

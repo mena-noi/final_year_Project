@@ -23,7 +23,7 @@ import {
   FaRegKeyboard,
   FaClipboardList
 } from "react-icons/fa";
-import { fetchSchedules, fetchStudentMaterials } from "../api/api";
+import { fetchStudentMaterials, fetchSchedules, fetchReminders, createReminder } from "../api/api";
 import MaterialViewer from "./MaterialViewer";
 import HuggingFaceVoiceAssistant from "./HuggingFaceVoiceAssistant";
 import "./HomeDashboard.css";
@@ -57,11 +57,8 @@ const HomeDashboard: React.FC = () => {
   const [schedulesLoading, setSchedulesLoading] = useState(false);
 
   // Reminders data
-  const [reminders, setReminders] = useState([
-    { id: 1, text: "Math assignment due tomorrow", time: "9:00 AM", completed: false },
-    { id: 2, text: "Study group meeting", time: "2:30 PM", completed: false },
-    { id: 3, text: "Physics quiz preparation", time: "5:00 PM", completed: false }
-  ]);
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [remindersLoading, setRemindersLoading] = useState(false);
 
   // Modules data - fetched from backend
   const [modules, setModules] = useState<any[]>([]);
@@ -95,6 +92,22 @@ const HomeDashboard: React.FC = () => {
       }
     };
     loadSchedules();
+  }, []);
+
+  // Fetch reminders from backend
+  useEffect(() => {
+    const loadReminders = async () => {
+      setRemindersLoading(true);
+      try {
+        const response = await fetchReminders();
+        setReminders(response.reminders || []);
+      } catch (error) {
+        console.error('Failed to fetch reminders:', error);
+      } finally {
+        setRemindersLoading(false);
+      }
+    };
+    loadReminders();
   }, []);
 
   // Fetch modules from backend
@@ -236,13 +249,68 @@ const HomeDashboard: React.FC = () => {
     setTimeout(() => navigate("/"), 1500);
   }, [navigate, speak]);
 
-  const toggleReminder = useCallback((id: number): void => {
+  const toggleReminder = useCallback(async (id: number): Promise<void> => {
     setReminders(prev => prev.map(r => 
       r.id === id ? { ...r, completed: !r.completed } : r
     ));
     const reminder = reminders.find(r => r.id === id);
     speak(reminder?.completed ? "Reminder marked incomplete" : "Reminder completed! Good job!");
+    
+    // Update reminder in backend
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/reminders/student/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          isActive: !reminder?.completed
+        })
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to update reminder');
+      }
+    } catch (error) {
+      console.error('Error updating reminder:', error);
+    }
   }, [reminders, speak]);
+
+  const addReminder = useCallback(async (reminderData: {
+    title: string;
+    description?: string;
+    reminderTime?: string;
+  }): Promise<void> => {
+    console.log('Adding reminder with data:', reminderData);
+    try {
+      const response = await createReminder({
+        title: reminderData.title,
+        description: reminderData.description || '',
+        reminderType: 'notification',
+        reminderTime: reminderData.reminderTime || '30',
+        repeatOption: 'once'
+      });
+      
+      console.log('Create reminder response:', response);
+      
+      if (response.reminder) {
+        setReminders(prev => [...prev, {
+          id: response.reminder.id,
+          text: response.reminder.title,
+          time: response.reminder.reminderTime || '12:00 PM',
+          completed: !response.reminder.isActive
+        }]);
+        speak(`Reminder added: ${reminderData.title}`);
+      } else {
+        console.log('No reminder in response:', response);
+      }
+    } catch (error) {
+      console.error('Error adding reminder:', error);
+      speak('Failed to add reminder');
+    }
+  }, []);
 
   const openMaterialViewer = useCallback((material: any) => {
     console.log('Opening material:', material);
@@ -508,6 +576,18 @@ const HomeDashboard: React.FC = () => {
               )}
             </div>
             <div className="card-footer-modern">
+              <button 
+                className="add-reminder-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const title = prompt('Enter reminder title:');
+                  if (title && title.trim()) {
+                    addReminder({ title: title.trim(), reminderTime: '30' });
+                  }
+                }}
+              >
+                + Add Reminder
+              </button>
               <span className="card-link">View all reminders →</span>
             </div>
           </div>

@@ -6,8 +6,6 @@ interface UseHuggingFaceSpeechReturn {
   isSpeaking: boolean;
   currentLanguage: string;
   supportedLanguages: Array<{code: string; name: string; flag: string; huggingCode: string}>;
-  startListening: () => void;
-  stopListening: () => void;
   speak: (text: string, language?: string) => void;
   setLanguage: (lang: string) => void;
   isSupported: boolean;
@@ -17,15 +15,7 @@ interface UseHuggingFaceSpeechReturn {
 
 const LANGUAGES = [
   { code: 'en-US', name: 'English', flag: '🇺🇸', huggingCode: 'en' },
-  { code: 'am-ET', name: 'Amharic', flag: '🇪🇹', huggingCode: 'am' },
-  { code: 'es-ES', name: 'Español', flag: '🇪🇸', huggingCode: 'es' },
-  { code: 'fr-FR', name: 'Français', flag: '🇫🇷', huggingCode: 'fr' },
-  { code: 'de-DE', name: 'Deutsch', flag: '🇩🇪', huggingCode: 'de' },
-  { code: 'zh-CN', name: '中文', flag: '🇨🇳', huggingCode: 'zh' },
-  { code: 'hi-IN', name: 'हिंदी', flag: '🇮🇳', huggingCode: 'hi' },
-  { code: 'ar-SA', name: 'العربية', flag: '🇸🇦', huggingCode: 'ar' },
-  { code: 'ja-JP', name: '日本語', flag: '🇯🇵', huggingCode: 'ja' },
-  { code: 'pt-BR', name: 'Português', flag: '🇧🇷', huggingCode: 'pt' }
+  { code: 'am-ET', name: 'Amharic', flag: '🇪🇹', huggingCode: 'am' }
 ];
 
 const HF_API_KEY = 'hf_xxx'; // Replace with your Hugging Face API key
@@ -52,119 +42,12 @@ export const useHuggingFaceSpeech = (): UseHuggingFaceSpeechReturn => {
     }
   }, []);
 
-  const speak = useCallback((text: string, language?: string) => {
-    const targetLanguage = language || currentLanguage;
-    
-    // Use Web Speech API for common languages, Hugging Face for Amharic/Afaan
-    if (['am-ET', 'om-ET'].includes(targetLanguage)) {
-      // For now, use Web Speech API as fallback for Amharic/Afaan
-      if (!synthesisRef.current) return;
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = targetLanguage;
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-        console.log(`Speaking ${targetLanguage}:`, text);
-      };
-
-      utterance.onend = () => {
-        setIsSpeaking(false);
-      };
-
-      synthesisRef.current.speak(utterance);
-    } else if (isWebSpeechSupported) {
-      // Fallback to Web Speech API for other languages
-      if (!synthesisRef.current) return;
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = targetLanguage;
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-        console.log(`Speaking ${targetLanguage}:`, text);
-      };
-
-      utterance.onend = () => {
-        setIsSpeaking(false);
-      };
-
-      synthesisRef.current.speak(utterance);
-    }
-  }, [currentLanguage, isWebSpeechSupported]);
-
-  const transcribeWithHuggingFace = useCallback(async (audioBlob: Blob) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const languageCode = currentLanguage.split('-')[0];
-      
-      // Use Simba-S for Amharic, Whisper for other languages
-      const modelName = languageCode === 'am' ? 'UBC-NLP/Simba-S' : 'openai/whisper-large-v3';
-      
-      const formData = new FormData();
-      formData.append('file', audioBlob);
-      formData.append('language', languageCode);
-
-      const response = await fetch(`https://api-inference.huggingface.co/models/${modelName}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${HF_API_KEY}`,
-          'Accept': 'application/json'
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Transcription failed');
-      }
-
-      const result = await response.json();
-      const transcribedText = result.text?.[0]?.text || '';
-      
-      setTranscript(transcribedText);
-      console.log(`STT (${currentLanguage}) using ${modelName}:`, transcribedText);
-      
-      // Speak confirmation in selected language
-      if (transcribedText) {
-        const confirmationMessages = {
-          'am-ET': 'ተር ምኛ ተር',
-          'en-US': 'Transcription complete',
-          'es-ES': 'Transcripción completa',
-          'fr-FR': 'Transcription terminée',
-          'de-DE': 'Transkription abgeschlossen',
-          'zh-CN': '转录完成',
-          'hi-IN': 'ट्रांस्क्रिप्शन पूर्ण',
-          'ar-SA': 'اكتمل التسجيل',
-          'ja-JP': '文字起こし完了',
-          'pt-BR': 'Transcrição concluída'
-        };
-        
-        speak(confirmationMessages[currentLanguage as keyof typeof confirmationMessages] || 'Transcription complete', currentLanguage);
-      }
-      
-      return transcribedText;
-    } catch (err: any) {
-      console.error('STT error:', err);
-      setError(err.message || 'Transcription failed');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentLanguage, speak]);
-
-  const synthesizeWithHuggingFace = useCallback(async (text: string) => {
+  const synthesizeWithHuggingFace = useCallback(async (text: string, language?: string) => {
     setIsSpeaking(true);
     setError(null);
 
     try {
-      const languageCode = currentLanguage.split('-')[0];
+      const languageCode = language?.split('-')[0] || currentLanguage.split('-')[0];
       
       // Use Google TTS for Amharic, Hugging Face for other languages
       if (languageCode === 'am') {
@@ -214,10 +97,21 @@ export const useHuggingFaceSpeech = (): UseHuggingFaceSpeechReturn => {
         const result = await response.json();
         
         // Convert audio data to playable format
-        const audioBlob = new Blob([result.audio], { type: 'audio/wav' });
+        const audioData = result[0]?.generated_audio;
+        if (!audioData) {
+          throw new Error('No audio data received');
+        }
+
+        // Convert base64 to binary
+        const binaryString = atob(audioData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const audioBlob = new Blob([bytes], { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
         
-        // Play the synthesized speech
         const audio = new Audio(audioUrl);
         audio.onended = () => {
           setIsSpeaking(false);
@@ -225,61 +119,47 @@ export const useHuggingFaceSpeech = (): UseHuggingFaceSpeechReturn => {
         };
         audio.play();
         
-        console.log(`Hugging Face synthesis (${currentLanguage}):`, text);
+        console.log(`Hugging Face Bark (${languageCode}):`, text);
       }
     } catch (err: any) {
-      console.error('TTS error:', err);
+      console.error('Speech synthesis error:', err);
       setError(err.message || 'Speech synthesis failed');
-    } finally {
       setIsSpeaking(false);
     }
   }, [currentLanguage]);
 
-  const startListening = useCallback(() => {
-    if (!isWebSpeechSupported) return;
+  const speak = useCallback((text: string, language?: string) => {
+    const targetLanguage = language || currentLanguage;
     
-    setTranscript('');
-    setError(null);
-    
-    // Request microphone access
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        const mediaRecorder = new MediaRecorder(stream);
-        const audioChunks: Blob[] = [];
+    // Use Google TTS for Amharic, Web Speech API for other languages
+    if (['am-ET'].includes(targetLanguage)) {
+      // Call Google TTS implementation for Amharic
+      synthesizeWithHuggingFace(text, targetLanguage);
+    } else if (isWebSpeechSupported) {
+      // Fallback to Web Speech API for other languages
+      if (!synthesisRef.current) return;
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunks.push(event.data);
-          }
-        };
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = targetLanguage;
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
 
-        mediaRecorder.onstop = async () => {
-          setIsListening(false);
-          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-          
-          // Send to Hugging Face for transcription
-          await transcribeWithHuggingFace(audioBlob);
-        };
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        console.log(`Speaking ${targetLanguage}:`, text);
+      };
 
-        mediaRecorder.start();
-        setIsListening(true);
-        console.log(`Recording started in ${currentLanguage}`);
-      })
-      .catch(err => {
-        console.error('Microphone access denied:', err);
-        setError('Microphone access denied');
-      });
-  }, [isWebSpeechSupported, currentLanguage, transcribeWithHuggingFace]);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
 
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      synthesisRef.current.speak(utterance);
     }
-  }, [isWebSpeechSupported]);
+  }, [currentLanguage, isWebSpeechSupported, synthesizeWithHuggingFace]);
 
   const setLanguage = useCallback((lang: string) => {
     setCurrentLanguage(lang);
-    console.log(`Language changed to:`, lang);
   }, []);
 
   return {
@@ -288,11 +168,9 @@ export const useHuggingFaceSpeech = (): UseHuggingFaceSpeechReturn => {
     isSpeaking,
     currentLanguage,
     supportedLanguages: LANGUAGES,
-    startListening,
-    stopListening,
     speak,
     setLanguage,
-    isSupported: isWebSpeechSupported || true, // Always true since we have Hugging Face fallback
+    isSupported: isWebSpeechSupported,
     isLoading,
     error
   };
